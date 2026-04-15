@@ -83,8 +83,15 @@ const SECTOR_ZONES: Record<string, string> = {
   C1: "Restrooms",  C2: "Restrooms",  C3: "VIP Lounge",   C4: "Exit Gate",
 };
 
+// ─── Peak Data types ──────────────────────────────────────────────────────────
+type PeakHour = {
+  hour: string;
+  expected: number;
+  actual: number | null;
+};
+
 // Simulated peak-time data (deterministic — same shape each render)
-const PEAK_DATA = [
+const PEAK_DATA: PeakHour[] = [
   { hour: "06:00", expected: 15, actual: null },
   { hour: "08:00", expected: 28, actual: null },
   { hour: "10:00", expected: 45, actual: null },

@@ -23,9 +23,13 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const data = await apiFetch<{ token: string; isAdmin: boolean }>(
+      const data = await apiFetch<{ id: string; name: string; email: string; isAdmin: boolean; token: string }>(
         "/api/auth/login",
-        { method: "POST", body: { email, password } }
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password })
+        }
       );
       login(data, data.token);
       toast.success("Welcome back!");
@@ -38,20 +42,21 @@ export default function LoginPage() {
     }
   };
 
-
   return (
     <div className="min-h-screen bg-[#080b14] flex relative overflow-hidden">
       <div className="absolute inset-0 bg-grid opacity-100 pointer-events-none" />
       <div className="absolute top-0 left-0 w-[600px] h-[600px] bg-violet-600/10 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-cyan-600/8 rounded-full blur-[100px] pointer-events-none" />
 
-      {/* Left Panel: Branding */}
+      {/* Left Panel */}
       <div className="hidden lg:flex flex-col justify-between w-1/2 p-12 relative z-10 border-r border-white/5">
         <Link href="/" className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/30">
             <Zap className="w-5 h-5 text-white" />
           </div>
-          <span className="text-white font-bold text-xl">SmartVenue<span className="text-violet-400"> AI</span></span>
+          <span className="text-white font-bold text-xl">
+            SmartVenue<span className="text-violet-400"> AI</span>
+          </span>
         </Link>
 
         <div>
@@ -78,7 +83,7 @@ export default function LoginPage() {
         <p className="text-gray-700 text-sm">&copy; {new Date().getFullYear()} SmartVenue AI</p>
       </div>
 
-      {/* Right Panel: Form */}
+      {/* Right Panel */}
       <div className="flex-1 flex items-center justify-center p-8 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -91,8 +96,12 @@ export default function LoginPage() {
           </Link>
 
           <div className="mb-8">
-            <h1 className="text-3xl font-black text-white mb-2">Welcome back</h1>
-            <p className="text-gray-500">Sign in to access your SmartVenue dashboard</p>
+            <h1 className="text-3xl font-black text-white mb-2">
+              Welcome back
+            </h1>
+            <p className="text-gray-500">
+              Sign in to access your SmartVenue dashboard
+            </p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-5">

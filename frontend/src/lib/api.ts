@@ -1,22 +1,44 @@
 /**
  * @file lib/api.ts
- * @description Centralised API configuration.
+ * @description Centralised API + Socket configuration.
  *
- * All frontend → backend HTTP calls must go through this module.
- * Never hardcode 'http://localhost:5000' anywhere in the codebase.
+ * Deployment modes:
+ *   Local dev  — NEXT_PUBLIC_API_URL=http://localhost:5000 (in .env.local)
+ *   Cloud Run  — NEXT_PUBLIC_API_URL not set / empty string
+ *                → all calls use relative paths (same origin), no CORS issues
  *
- * Environment variables:
- *   NEXT_PUBLIC_API_URL   — Base URL of the backend REST API
- *   NEXT_PUBLIC_SOCKET_URL — WebSocket server URL (defaults to API URL)
+ * IMPORTANT: NEXT_PUBLIC_* vars are BAKED IN at Next.js build time.
+ * Do NOT rely on runtime env injection for these variables.
  */
 
-/** Base URL for all REST API calls */
-export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '') || 'http://localhost:5000';
+const rawApiUrl = process.env.NEXT_PUBLIC_API_URL;
 
-/** WebSocket server URL (can differ from the REST URL if needed) */
-export const SOCKET_URL =
-  process.env.NEXT_PUBLIC_SOCKET_URL?.replace(/\/$/, '') || API_BASE_URL;
+/**
+ * Base URL for all REST API calls.
+ * - Dev:  "http://localhost:5000"
+ * - Prod: ""  (relative paths → same Cloud Run origin)
+ */
+export const API_BASE_URL: string =
+  rawApiUrl && rawApiUrl.trim() !== ''
+    ? rawApiUrl.replace(/\/$/, '')
+    : ''; // empty string → all fetch() calls use relative paths e.g. /api/auth/login
+
+/**
+ * WebSocket server URL for socket.io-client.
+ * - Dev:  "http://localhost:5000"  (explicit backend port)
+ * - Prod: window.location.origin   (same Cloud Run URL → Express handles /socket.io/)
+ *
+ * The explicit NEXT_PUBLIC_SOCKET_URL allows overriding independently.
+ */
+export const SOCKET_URL: string = (() => {
+  const explicit = process.env.NEXT_PUBLIC_SOCKET_URL;
+  if (explicit && explicit.trim() !== '') return explicit.replace(/\/$/, '');
+  if (API_BASE_URL !== '') return API_BASE_URL;
+  // Production same-origin: connect to window.location.origin so socket.io
+  // hits the Express server (which handles /socket.io/* at the HTTP level).
+  if (typeof window !== 'undefined') return window.location.origin;
+  return ''; // SSR fallback — socket is client-side only anyway
+})();
 
 /**
  * Typed fetch wrapper — prepends the API base URL, sets content-type,
@@ -27,7 +49,7 @@ export const SOCKET_URL =
  */
 export async function apiFetch<T = unknown>(
   path: string,
-  options: RequestInit & { body?: unknown } = {}
+  options: Omit<RequestInit, 'body'> & { body?: unknown } = {}
 ): Promise<T> {
   const { body, ...rest } = options;
 
@@ -37,7 +59,9 @@ export async function apiFetch<T = unknown>(
       'Content-Type': 'application/json',
       ...rest.headers,
     },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
+    body: body !== undefined
+      ? (typeof body === 'string' ? body : JSON.stringify(body))
+      : undefined,
   });
 
   const data = await response.json();

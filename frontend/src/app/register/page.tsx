@@ -24,9 +24,13 @@ export default function RegisterPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const data = await apiFetch<{ token: string }>(
+      const data = await apiFetch<{ id: string; name: string; email: string; isAdmin: boolean; token: string }>(
         "/api/auth/register",
-        { method: "POST", body: { name, email, password } }
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email, password })
+        }
       );
       login(data, data.token);
       toast.success("Account created!");
@@ -38,7 +42,6 @@ export default function RegisterPage() {
       setLoading(false);
     }
   };
-
 
   return (
     <div className="min-h-screen bg-[#080b14] flex items-center justify-center relative overflow-hidden p-6">
@@ -60,7 +63,9 @@ export default function RegisterPage() {
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/30">
             <Zap className="w-5 h-5 text-white" />
           </div>
-          <span className="text-white font-bold text-lg">SmartVenue<span className="text-violet-400"> AI</span></span>
+          <span className="text-white font-bold text-lg">
+            SmartVenue<span className="text-violet-400"> AI</span>
+          </span>
         </div>
 
         <h1 className="text-3xl font-black text-white mb-2">Create an account</h1>

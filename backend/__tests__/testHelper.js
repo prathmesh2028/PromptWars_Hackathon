@@ -1,49 +1,28 @@
-/**
- * @file testHelper.js
- * @description Shared Jest setup: boots an isolated MongoMemoryServer for each
- * test suite, connects Mongoose, and tears everything down afterward.
- *
- * Usage: import at the top of any test file that needs DB access.
- *
- *   const { connectTestDB, disconnectTestDB, clearTestDB } = require('./testHelper');
- *   beforeAll(connectTestDB);
- *   afterEach(clearTestDB);     // reset state between tests (optional)
- *   afterAll(disconnectTestDB);
- */
-
-const mongoose            = require('mongoose');
-const { MongoMemoryServer } = require('mongodb-memory-server');
-
-let mongoServer;
+const mongoose = require('mongoose');
 
 /**
- * Spins up an isolated MongoMemoryServer and connects Mongoose.
- * Call in `beforeAll`.
+ * Connects to the test database using TEST_MONGO_URI or MONGO_URI.
  */
 const connectTestDB = async () => {
-  mongoServer = await MongoMemoryServer.create();
-  await mongoose.connect(mongoServer.getUri());
+  const uri = process.env.TEST_MONGO_URI || process.env.MONGO_URI;
+  if (!uri) {
+    console.warn('⚠ Skipping DB connection for tests: No TEST_MONGO_URI provided.');
+    return;
+  }
+  await mongoose.connect(uri);
 };
 
-/**
- * Drops all collections — useful for resetting state between tests.
- * Call in `afterEach` if tests share state.
- */
 const clearTestDB = async () => {
+  if (mongoose.connection.readyState === 0) return;
   const collections = mongoose.connection.collections;
   for (const key in collections) {
     await collections[key].deleteMany({});
   }
 };
 
-/**
- * Stops the in-memory server and closes the Mongoose connection.
- * Call in `afterAll`.
- */
 const disconnectTestDB = async () => {
-  await mongoose.connection.dropDatabase();
+  if (mongoose.connection.readyState === 0) return;
   await mongoose.connection.close();
-  await mongoServer.stop();
 };
 
 module.exports = { connectTestDB, clearTestDB, disconnectTestDB };

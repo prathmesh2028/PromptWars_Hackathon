@@ -73,7 +73,18 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     newSocket.on('connect', () => setIsConnected(true));
     newSocket.on('disconnect', () => setIsConnected(false));
 
-    newSocket.on('sim_update', (data) => {
+    interface SimUpdateData {
+      heatmap?: Record<string, number>;
+      predictions?: Record<string, number>;
+      totalCrowd?: number;
+      queues?: QueueEntry[];
+      insights?: Insight[];
+      bestPath?: string[];
+      risk?: 'normal' | 'warning' | 'critical';
+      timeMul?: number;
+    }
+
+    newSocket.on('sim_update', (data: SimUpdateData) => {
       if (!data) return;
       if (data.heatmap)     setHeatmap(data.heatmap);
       if (data.predictions) setPredictions(data.predictions);

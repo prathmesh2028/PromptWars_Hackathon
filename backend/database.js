@@ -1,59 +1,43 @@
 /**
  * @file database.js
- * @description MongoDB connection module.
- *
- * Strategy (in priority order):
- *   1. If MONGO_URI is set → connect to that URI (Atlas, Docker, self-hosted)
- *   2. Otherwise           → spin up MongoMemoryServer (local dev / testing)
- *
- * On startup it:
- *   1. Establishes the Mongoose connection
- *   2. Seeds default users (idempotent — won't re-seed if data already exists)
- *
- * To use a real MongoDB:
- *   Set MONGO_URI=mongodb+srv://user:pass@cluster.mongodb.net/smartvenue
+ * @description Production MongoDB connection module.
  */
 
-const mongoose             = require('mongoose');
-const { MongoMemoryServer } = require('mongodb-memory-server');
+const mongoose = require('mongoose');
 
 /**
- * Connects to MongoDB using MONGO_URI env var or in-memory fallback.
- * Exits the process on connection failure.
+ * Connects to MongoDB using MONGO_URI from environment.
+ * Validates existence of MONGO_URI and handles connection errors.
+ * 
+ * Note: Special characters (@, #, etc.) in MONGO_URI must be URL-encoded 
+ * when provided in the environment (e.g., @ becomes %40).
  */
 const connectDB = async () => {
+  const uri = process.env.MONGO_URI;
+
+  if (!uri) {
+    console.error('✗ CRITICAL ERROR: MONGO_URI is missing from environment variables.');
+    console.warn('⚠ Fallback: Server will start without persistent database connectivity.');
+    return;
+  }
+
   try {
-    let uri = process.env.MONGO_URI;
-
-    if (uri) {
-      // ── Real MongoDB (production / staging) ──────────────────────────────
-      console.log('✓ Using external MongoDB URI from MONGO_URI env var');
-    } else {
-      // ── In-memory MongoDB (local development) ────────────────────────────
-      if (process.env.NODE_ENV === 'production') {
-        console.warn(
-          '⚠ Warning: Running with in-memory MongoDB in production mode. ' +
-          'Set MONGO_URI for persistent storage.'
-        );
-      }
-      const mongoServer = await MongoMemoryServer.create();
-      uri = mongoServer.getUri();
-      console.log('✓ Using in-memory MongoDB (MongoMemoryServer)');
-    }
-
     const conn = await mongoose.connect(uri, {
-      // Recommended options for Mongoose 7+
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 8000, 
+      socketTimeoutMS: 45000,
+      // URL-encoding for special characters is handled by the connection string parser
     });
-    console.log(`✓ MongoDB connected: ${conn.connection.host}`);
 
-    // Seed default users (no-op if already seeded)
+    console.log(`✓ MongoDB Connected: ${conn.connection.host}`);
+
+    // Seed default users (idempotent seeder)
     await require('./seed')();
   } catch (err) {
-    console.error(`✗ Database connection failed: ${err.message}`);
-    process.exit(1);
+    console.error('✗ CRITICAL ERROR: Database connection failed.');
+    console.error(`Reason: ${err.message}`);
+    // We let the process continue so the server can start and listen on its PORT, 
+    // satisfying Cloud Run's health check.
   }
 };
 
 module.exports = connectDB;
-

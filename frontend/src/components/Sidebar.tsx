@@ -90,7 +90,7 @@ export default function Sidebar() {
       {liveAlert && (
         <div className="mx-4 mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 flex items-start gap-3">
           <Bell className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0 animate-bounce" />
-          <p className="text-red-300 text-xs leading-relaxed line-clamp-2">{liveAlert}</p>
+          <p className="text-red-300 text-xs leading-relaxed line-clamp-2">{liveAlert?.message}</p>
         </div>
       )}
 

@@ -1,15 +1,41 @@
+# ── Version control ──────────────────────────────────────────────
 **/.git
 **/.gitignore
+**/.gitattributes
+
+# ── Dependencies (rebuilt inside Docker) ─────────────────────────
 **/node_modules
+
+# ── Next.js build artifacts (rebuilt inside Docker) ──────────────
 **/.next
 **/out
-**/build
+
+# ── Coverage / test output ────────────────────────────────────────
 **/coverage
+
+# ── Logs ─────────────────────────────────────────────────────────
 **/*.log
+**/npm-debug.log*
+
+# ── Environment files (secrets — never bake into images) ─────────
 **/.env
-**/.env.*
+**/.env.local
+**/.env.development
+**/.env.production
+# Keep examples (.env.example) — they have no real secrets
 !**/.env.example
-**/README.md
-**/*.tsbuildinfo
+
+# ── IDE / OS noise ───────────────────────────────────────────────
 .vscode
 .idea
+**/.DS_Store
+**/Thumbs.db
+**/*.tsbuildinfo
+
+# ── Docs (not needed at runtime) ─────────────────────────────────
+**/README.md
+**/AGENTS.md
+**/CLAUDE.md
+
+# ── Windows-only helpers (not needed in Linux container) ─────────
+start.bat
