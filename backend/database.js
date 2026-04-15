@@ -2,32 +2,50 @@
  * @file database.js
  * @description MongoDB connection module.
  *
- * Uses `mongodb-memory-server` to spin up an in-process MongoDB instance,
- * removing the need for a locally installed MongoDB service.
+ * Strategy (in priority order):
+ *   1. If MONGO_URI is set → connect to that URI (Atlas, Docker, self-hosted)
+ *   2. Otherwise           → spin up MongoMemoryServer (local dev / testing)
  *
  * On startup it:
- *   1. Boots the in-memory MongoDB engine
- *   2. Connects Mongoose to it
- *   3. Seeds default users (idempotent — won't re-seed if data exists)
+ *   1. Establishes the Mongoose connection
+ *   2. Seeds default users (idempotent — won't re-seed if data already exists)
  *
- * For a real deployment, replace MongoMemoryServer with a MONGO_URI env variable.
+ * To use a real MongoDB:
+ *   Set MONGO_URI=mongodb+srv://user:pass@cluster.mongodb.net/smartvenue
  */
 
-const mongoose            = require('mongoose');
+const mongoose             = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
 
 /**
- * Boots the in-memory database and connects Mongoose.
- * Exits the process on connection failure to prevent a partially-started server.
+ * Connects to MongoDB using MONGO_URI env var or in-memory fallback.
+ * Exits the process on connection failure.
  */
 const connectDB = async () => {
   try {
-    // Spin up ephemeral MongoDB instance
-    const mongoServer = await MongoMemoryServer.create();
-    const uri         = mongoServer.getUri();
+    let uri = process.env.MONGO_URI;
 
-    const conn = await mongoose.connect(uri);
-    console.log(`✓ MongoDB connected: ${conn.connection.host} (in-memory)`);
+    if (uri) {
+      // ── Real MongoDB (production / staging) ──────────────────────────────
+      console.log('✓ Using external MongoDB URI from MONGO_URI env var');
+    } else {
+      // ── In-memory MongoDB (local development) ────────────────────────────
+      if (process.env.NODE_ENV === 'production') {
+        console.warn(
+          '⚠ Warning: Running with in-memory MongoDB in production mode. ' +
+          'Set MONGO_URI for persistent storage.'
+        );
+      }
+      const mongoServer = await MongoMemoryServer.create();
+      uri = mongoServer.getUri();
+      console.log('✓ Using in-memory MongoDB (MongoMemoryServer)');
+    }
+
+    const conn = await mongoose.connect(uri, {
+      // Recommended options for Mongoose 7+
+      serverSelectionTimeoutMS: 5000,
+    });
+    console.log(`✓ MongoDB connected: ${conn.connection.host}`);
 
     // Seed default users (no-op if already seeded)
     await require('./seed')();
@@ -38,3 +56,4 @@ const connectDB = async () => {
 };
 
 module.exports = connectDB;
+

@@ -12,6 +12,18 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 
+// ─── JWT Secret validation ────────────────────────────────────────────────────
+// Fail fast on startup if the secret is missing in production.
+// Never fall back to a hardcoded string in non-development environments.
+const JWT_SECRET = (() => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret && process.env.NODE_ENV === 'production') {
+    console.error('✗ FATAL: JWT_SECRET environment variable is not set. Refusing to start.');
+    process.exit(1);
+  }
+  return secret || 'dev_only_insecure_secret_do_not_use_in_production';
+})();
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 /**
@@ -20,9 +32,10 @@ const jwt = require('jsonwebtoken');
  * @returns {string} Signed JWT token
  */
 const generateToken = (id) =>
-  jwt.sign({ id }, process.env.JWT_SECRET || 'changeme_in_production', {
+  jwt.sign({ id }, JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRY || '7d',
   });
+
 
 /**
  * Builds the safe user payload to return to clients.

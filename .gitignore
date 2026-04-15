@@ -1,10 +1,10 @@
 # Dependencies
 node_modules/
 
-# Environment files
+# Environment files — never commit real secrets
 .env
-.env.local
-.env.production
+.env.*
+!.env.example
 
 # Build output
 .next/

@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { SOCKET_URL } from '@/lib/api';
 
 export interface QueueEntry {
   name: string;
@@ -63,7 +64,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
   const [liveAlert, setLiveAlert] = useState<LiveAlert | null>(null);
 
   useEffect(() => {
-    const newSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000', {
+    const newSocket = io(SOCKET_URL, {
       reconnectionAttempts: 10,
       reconnectionDelay: 2000,
     });

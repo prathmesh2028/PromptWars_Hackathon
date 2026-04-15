@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Link from "next/link";
 import { ArrowLeft, Eye, EyeOff, Loader2, Zap } from "lucide-react";
+import { apiFetch } from "@/lib/api";
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
@@ -23,25 +24,21 @@ export default function RegisterPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:5000/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        login(data, data.token);
-        toast.success("Account created!");
-        router.push("/dashboard");
-      } else {
-        toast.error(data.message || "Registration failed");
-      }
-    } catch {
-      toast.error("Could not connect to backend. Is it running?");
+      const data = await apiFetch<{ token: string }>(
+        "/api/auth/register",
+        { method: "POST", body: { name, email, password } }
+      );
+      login(data, data.token);
+      toast.success("Account created!");
+      router.push("/dashboard");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Registration failed";
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-[#080b14] flex items-center justify-center relative overflow-hidden p-6">

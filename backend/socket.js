@@ -3,12 +3,16 @@ const { generateSimulationData } = require('./services/simulationService');
 let io;
 
 const initSocket = (server) => {
+  // Use the same FRONTEND_URL as Express CORS — avoids dual config
+  const allowedOrigin = process.env.FRONTEND_URL || '*';
+
   io = require('socket.io')(server, {
     cors: {
-      origin: '*',
+      origin: allowedOrigin,
       methods: ['GET', 'POST'],
     },
   });
+
 
   io.on('connection', (socket) => {
     console.log(`Client connected: ${socket.id}`);

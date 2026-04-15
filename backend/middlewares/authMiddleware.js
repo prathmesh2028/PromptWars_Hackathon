@@ -31,7 +31,9 @@ const protect = async (req, res, next) => {
   const token = authHeader.split(' ')[1];
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'changeme_in_production');
+    // JWT_SECRET must be set. In production, authController validates at boot.
+    const secret = process.env.JWT_SECRET || 'dev_only_insecure_secret_do_not_use_in_production';
+    const decoded = jwt.verify(token, secret);
 
     // Re-fetch user to ensure they still exist and haven't been deactivated
     const user = await User.findById(decoded.id);
@@ -48,6 +50,7 @@ const protect = async (req, res, next) => {
     next(new Error('Not authorized — token invalid or expired.'));
   }
 };
+
 
 /**
  * `adminOnly` middleware — restricts access to admin users.

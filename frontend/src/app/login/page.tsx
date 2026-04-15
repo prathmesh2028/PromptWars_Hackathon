@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Link from "next/link";
 import { ArrowLeft, Eye, EyeOff, Loader2, Zap } from "lucide-react";
+import { apiFetch } from "@/lib/api";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -22,25 +23,21 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:5000/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        login(data, data.token);
-        toast.success("Welcome back!");
-        router.push(data.isAdmin ? "/admin" : "/dashboard");
-      } else {
-        toast.error(data.message || "Invalid credentials");
-      }
-    } catch {
-      toast.error("Could not connect to backend. Is it running?");
+      const data = await apiFetch<{ token: string; isAdmin: boolean }>(
+        "/api/auth/login",
+        { method: "POST", body: { email, password } }
+      );
+      login(data, data.token);
+      toast.success("Welcome back!");
+      router.push(data.isAdmin ? "/admin" : "/dashboard");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Invalid credentials";
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-[#080b14] flex relative overflow-hidden">
